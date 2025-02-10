@@ -30,40 +30,43 @@ def calculate_cost():
     records = db.read_user_data()
     data = []
 
-    for row in records[:3]:
+    for row in records:
         accountid = row["accountid"]
         country = row["country"]
         city = row["city"]
         address = row["address"]
 
         full_address = "country="+country+", city="+city+", address="+address
+        address = country+", "+city+", "+address
 
-        neighborhood_prompt = full_address+"\nGive me neighborhood address from given address and provide response in {'address': neighborhood_address} format only. If neighborhood_address not found than {'address': '', 'error': error}"
+        neighborhood_prompt = full_address+"\nGive me neighborhood address from given address and provide response in {'address': neighborhood_address} format only. If neighborhood_address not found than {'address': '', 'error': error}. Return the JSON formatted with {} and don't wrap with ```json."
 
         query = AskQuery(neighborhood_prompt)
         response = query.get_response()
-        print('response: ', response)
+        print('Neighborhood address: ', response)
         if type(response) != "json":
             response = json.loads(response.replace("'", "\""))
         
         neighborhood_address = response["address"]
         if len(neighborhood_address) > 10:
             full_address = neighborhood_address
+            address = neighborhood_address
 
-        print('full_address: ', full_address)
-        cost_prompt = full_address+"\nGive me accurate cost in dollar per meter square for given address and provide response in {'cost': actual_cost} format only. If actual_cost not found than {'cost': 0, 'error': error}"
+        print('Address: ', address)
+        cost_prompt = full_address+"\nGive me accurate cost in dollar per meter square for given address and provide response in {'cost': actual_cost} format only. If actual_cost not found than {'cost': 0, 'error': error}. Return the JSON formatted with {} and don't wrap with ```json."
 
         query = AskQuery(cost_prompt)
         response = query.get_response()
         if type(response) != "json":
             response = json.loads(response.replace("'", "\""))
-        print('response_json: ', response["cost"])
+        print('Cost: ', response["cost"])
         cost = response["cost"]
 
-        query = "INSERT INTO Employees (accountid, address, cost_per_square_meter ) VALUES (%s, %s, %s)"
-        data.append((accountid, full_address, cost))
+        query = "INSERT INTO [dbo].[client_location_cost] (accountid, client_neighborhood, cost_per_sqm) VALUES (%s, %s, %s)"
+        data.append((accountid, address, cost))
 
-    # db.insert_data(query, data)
+    db.insert_data(query, data)
+    db.read_cost_data()
 
 
 calculate_cost()

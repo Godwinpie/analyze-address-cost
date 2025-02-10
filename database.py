@@ -1,4 +1,3 @@
-# import pymssql
 import os
 from dotenv import load_dotenv
 import pymssql
@@ -26,9 +25,9 @@ class Database:
     def create_table(self):
         try:
             create_table_query="""
-                CREATE TABLE cost_per_meter_square (
+                CREATE TABLE report.address_cost (
                 ID INT IDENTITY(1,1) PRIMARY KEY,
-                cost_per_square_meter INT NOT NULL,
+                cost_per_meter_square INT NOT NULL,
                 address varchar(255),
                 accountid INT,
                 CONSTRAINT FK_accountid FOREIGN KEY (accountid) REFERENCES report.vtiger_account(accountid) ON DELETE CASCADE)
@@ -43,9 +42,10 @@ class Database:
             print("Error:", e)
 
     def read_user_data(self):
-        query="""select accountid, country, city, address
-            from report.vtiger_account
-            where first_deposit_date>'2024-01-01' and city is not null"""
+        query="""select accountid, country, city, address from report.vtiger_account a 
+            where first_deposit_date>'2024-01-01' and city is not null and
+            not exists (select 1 from [dbo].[client_location_cost] b WHERE a.accountid = b.accountid);
+        """
 
         cursor = self.conn.cursor()
         cursor.execute(query)
@@ -57,13 +57,19 @@ class Database:
         cursor = self.conn.cursor()
         cursor.executemany(query, data)
 
-        conn.commit()
+        self.conn.commit()
         cursor.close()
 
         print("Data inserted")
+    
+    def read_cost_data(self):
+        query = """SELECT TOP (1000) [accountid]
+                ,[client_neighborhood]
+                ,[cost_per_sqm]
+                FROM [dbo].[client_location_cost]"""
 
+        cursor = self.conn.cursor()
+        cursor.execute(query)
 
-
-
-
-
+        records = cursor.fetchall()
+        print('records: ', records)
