@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 import pymssql
 
 load_dotenv("/home/ec2-user/analyze-address-cost/dot.env")
+# load_dotenv("dot.env")
 
 server = os.getenv("DB_HOST")
 database = os.getenv("DB_NAME")
@@ -56,8 +57,9 @@ class Database:
         print("User records: ", len(records))
         return records
 
-    def insert_data(self, query, data):
+    def insert_data(self, data):
         cursor = self.conn.cursor()
+        query = "INSERT INTO [dbo].[client_location_cost] (accountid, client_neighborhood, cost_per_sqm) VALUES (%s, %s, %s)"
         cursor.executemany(query, data)
 
         self.conn.commit()
