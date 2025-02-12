@@ -4,3 +4,5 @@ venv/
 
 dot.env
 .venv
+
+__pychache__/

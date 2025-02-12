@@ -2,12 +2,14 @@ import os
 from dotenv import load_dotenv
 import pymssql
 
-load_dotenv("dot.env")
+load_dotenv("/home/ec2-user/analyze-address-cost/dot.env")
 
 server = os.getenv("DB_HOST")
 database = os.getenv("DB_NAME")
 username = os.getenv("DB_USER")
 password = os.getenv("DB_PASS")
+
+print(server, database)
 
 conn = pymssql.connect(
     server=server,
@@ -51,6 +53,7 @@ class Database:
         cursor.execute(query)
 
         records = cursor.fetchall()
+        print("User records: ", len(records))
         return records
 
     def insert_data(self, query, data):
@@ -63,13 +66,13 @@ class Database:
         print("Data inserted")
     
     def read_cost_data(self):
-        query = """SELECT TOP (1000) [accountid]
-                ,[client_neighborhood]
-                ,[cost_per_sqm]
-                FROM [dbo].[client_location_cost]"""
+        query = """SELECT COUNT(*) AS total FROM [dbo].[client_location_cost]"""
 
         cursor = self.conn.cursor()
         cursor.execute(query)
 
         records = cursor.fetchall()
-        print('records: ', records)
+        print('records: ', len(records))
+
+db = Database()
+db.read_cost_data()
