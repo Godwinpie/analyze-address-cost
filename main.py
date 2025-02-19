@@ -2,19 +2,27 @@ import os
 import openai
 import json
 from database import Database
+import httpx
+from PIL import Image
+from io import BytesIO
+
+import base64
+
 import asyncio
 
 from dotenv import load_dotenv
 
 load_dotenv("/home/ec2-user/analyze-address-cost/dot.env")
 # load_dotenv("dot.env")
+# load_dotenv("/mnt/f/Projects/Address-analysis/dot.env")
 
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+CHATGPT_MODEL = os.getenv("CHATGPT_MODEL")
+GOOGLE_MAP_API_KEY = os.getenv("GOOGLE_MAP_API_KEY")
+
+client = openai.AsyncOpenAI(api_key=OPENAI_API_KEY)
 
 async def get_openai_response(prompt):
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-    CHATGPT_MODEL = os.getenv("CHATGPT_MODEL")
-
-    client = openai.OpenAI(api_key=OPENAI_API_KEY)
     result=""
 
     try:
@@ -43,10 +51,9 @@ async def get_cost(neighborhood_address):
 
 
 async def get_neighbourhood_address(full_address):
-    neighborhood_prompt = full_address+"\nGive me neighborhood address from given address and provide response in {'address': neighborhood_address} format only. If neighborhood_address not found than {'address': '', 'error': error}. \nReturn the JSON formatted with {} and don't wrap with ```json.\nneighborhood_address should not contains single quote and apostrophe s. neighborhood_address must be in a string."
+    neighborhood_prompt = full_address+"\nFind the neighborhood residential area from a given address and provide response in {'address': neighborhood_address} format only. If neighborhood_address not found than {'address': '', 'error': error}. \nReturn the JSON formatted with {} and don't wrap with ```json.\nneighborhood_address should not contains single quote and apostrophe s. neighborhood_address must be in a string."
 
     response = await get_openai_response(neighborhood_prompt)
-    print("response: ", response)
     if type(response) != "json":
         try:
             response = json.loads(response.replace("'", "\""))
@@ -54,6 +61,73 @@ async def get_neighbourhood_address(full_address):
             response = {"address": ""}
 
     return response["address"]
+
+
+async def analyse_location_image(address):
+    geocode_url = "https://maps.googleapis.com/maps/api/geocode/json"
+    params = {
+        "address": address,
+        "key": GOOGLE_MAP_API_KEY
+    }
+    
+    geocode_request = httpx.AsyncClient()
+    geocode_response = await geocode_request.get(geocode_url, params=params)
+    geocode_response = geocode_response.json()
+
+    response = {'object': '', 'area_type': '', 'people': '', 'property_type': ''}
+
+    if geocode_response["status"] == "OK":
+
+        location = geocode_response["results"][0]["geometry"]["location"]
+        print('geocode_response["results"]: ', location)
+        lat, lon = location["lat"], location["lng"]
+
+        street_view_url = f"https://maps.googleapis.com/maps/api/streetview?size=600x400&location={lat},{lon}&key={GOOGLE_MAP_API_KEY}"
+
+        street_view_request = httpx.AsyncClient()
+        street_view_response = await street_view_request.get(street_view_url)
+
+        if street_view_response.status_code == 200:
+            image = Image.open(BytesIO(street_view_response.content))
+            image.save("street_view.png")
+            buffered = BytesIO()
+            image.save(buffered, format="PNG")
+
+            img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
+        
+            response = await client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": "Analyze this image and give me response in this json format: {'object': 'detect the object', 'area_type': 'commercial or residential', 'people': 'rich, medium or poor', 'property_type': 'detect property type like luxurius home, raw house etc'}\nReturn the JSON formatted with {} and don't wrap with ```json.",
+                            },
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": f"data:image/jpeg;base64,{img_str}"},
+                            },
+                        ],
+                    }
+                ],
+            )
+
+            print("--------------------------------")
+            response = response.choices[0].message.content
+
+            if type(response) != "json":
+                try:
+                    response = json.loads(response.replace("'", "\""))
+                    print('response: ', response)
+                except:
+                    pass
+            
+            return response
+    else:
+        print("Failed to get latitude and longitude")
+        return response
 
 
 async def calculate_cost():
@@ -68,18 +142,29 @@ async def calculate_cost():
         city = row["city"]
         address = row["address"]
 
-        full_address = "country="+country+", city="+city+", address="+address
-        address = country+", "+city+", "+address
+        original_address = "country="+country+", city="+city+", address="+address
+        temp_address = country+", "+city+", "+address
 
-        neighborhood_address = await get_neighbourhood_address(full_address)
+        neighborhood_address = await get_neighbourhood_address(original_address)
 
-        cost_1 = await get_cost(neighborhood_address)
-        data.append((accountid, neighborhood_address, cost_1))
+        if len(neighborhood_address) > 0:
+            cost_1 = await get_cost(neighborhood_address)
+            response = await analyse_location_image(neighborhood_address)
+            
+            if response.get("area_type") == "residential" and float(cost_1) > 0:
+                data.append((accountid, neighborhood_address, cost_1, response["object"], response["area_type"], response["people"], response["property_type"], 1))
 
-        cost_2 = await get_cost(full_address)
-        data.append((accountid, address, cost_2))
+        cost_2 = await get_cost(original_address)
+        response = await analyse_location_image(temp_address)
 
-        db.insert_data(data)
+        if response.get("area_type") == "residential" and float(cost_2) > 0:
+            if len(neighborhood_address) == 0:
+                data.append((accountid, temp_address, cost_2, response["object"], response["area_type"], response["people"], response["property_type"], 0))
+            else:
+                data.append((accountid, temp_address, cost_2, response["object"], response["area_type"], response["people"], response["property_type"], 1))
+        
+        if len(data) > 0:
+            db.insert_data(data)
 
     db.read_cost_data()
 
