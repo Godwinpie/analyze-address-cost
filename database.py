@@ -45,19 +45,28 @@ class Database:
     def read_user_data(self):
         query="""select accountid, country, city, address from report.vtiger_account a 
             where first_deposit_date>'2024-01-01' and city is not null
-            and not exists (select 1 from [dbo].[client_location_cost] b WHERE a.accountid = b.accountid);
         """
+            # and not exists (select 1 from [dbo].[client_location_cost] b WHERE a.accountid = b.accountid);
 
         cursor = self.conn.cursor()
         cursor.execute(query)
 
         records = cursor.fetchall()
-        print("User records: ", len(records))
+        print("Client records: ", len(records))
         return records
 
     def insert_data(self, data):
         cursor = self.conn.cursor()
-        query = "INSERT INTO [dbo].[client_location_cost] (accountid, client_neighborhood, cost_per_sqm, object, area_type, people, property_type, is_valid) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
+        query = "SELECT COUNT(*) AS TOTAL FROM [dbo].[client_location_cost] WHERE accountid = %s"
+        cursor.execute(query, data[0][0])
+        records = cursor.fetchall()
+
+        if records[0]["TOTAL"] > 0:
+            query = "DELETE FROM [dbo].[client_location_cost] WHERE accountid = %s"
+            cursor.execute(query, data[0][0])
+            self.conn.commit()
+
+        query = "INSERT INTO [dbo].[client_location_cost] (accountid, client_neighborhood, cost_per_sqm, object, area_type, people_type, property_type, is_valid) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
         cursor.executemany(query, data)
 
         self.conn.commit()
@@ -66,13 +75,20 @@ class Database:
         print("Data inserted")
     
     def read_cost_data(self):
-        query = """SELECT COUNT(*) AS total FROM [dbo].[client_location_cost]"""
+        query = """SELECT COUNT(*) AS TOTAL FROM [dbo].[client_location_cost]"""
+        # query = """SELECT * FROM [dbo].[client_location_cost]"""
 
         cursor = self.conn.cursor()
         cursor.execute(query)
 
         records = cursor.fetchall()
-        print('records: ', records[0]['total'])
+        print('records: ', records)
+
+
+        # for record in records:
+        #     print('record: ', record["people_type"], record["area_type"], record["is_valid"])
+
+
 
 db = Database()
 # db.read_user_data()
