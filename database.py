@@ -45,8 +45,8 @@ class Database:
     def read_user_data(self):
         query="""select accountid, country, city, address from report.vtiger_account a 
             where first_deposit_date>'2024-01-01' and city is not null
+            and not exists (select 1 from [dbo].[client_location_cost] b WHERE a.accountid = b.accountid);
         """
-            # and not exists (select 1 from [dbo].[client_location_cost] b WHERE a.accountid = b.accountid);
 
         cursor = self.conn.cursor()
         cursor.execute(query)
@@ -66,7 +66,7 @@ class Database:
         print("Data inserted")
     
     def read_cost_data(self):
-        query = """SELECT COUNT(*) AS total FROM [dbo].[client_location_cost] where object is not null"""
+        query = """SELECT COUNT(*) AS total FROM [dbo].[client_location_cost]"""
 
         cursor = self.conn.cursor()
         cursor.execute(query)
@@ -74,6 +74,6 @@ class Database:
         records = cursor.fetchall()
         print('records: ', records[0]['total'])
 
-# db = Database()
+db = Database()
 # db.read_user_data()
-# db.read_cost_data()
+db.read_cost_data()

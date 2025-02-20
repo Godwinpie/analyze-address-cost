@@ -47,7 +47,7 @@ async def get_cost(neighborhood_address):
         except:
             response = {"cost": 0}
 
-    return response["cost"]
+    return response.get("cost", 0)
 
 
 async def get_neighbourhood_address(full_address):
@@ -60,7 +60,7 @@ async def get_neighbourhood_address(full_address):
         except:
             response = {"address": ""}
 
-    return response["address"]
+    return response.get("address", "")
 
 
 async def analyse_location_image(address):
@@ -89,7 +89,7 @@ async def analyse_location_image(address):
 
         if street_view_response.status_code == 200:
             image = Image.open(BytesIO(street_view_response.content))
-            image.save("street_view.png")
+            #image.save("street_view.png")
             buffered = BytesIO()
             image.save(buffered, format="PNG")
 
