@@ -62,14 +62,13 @@ class Database:
         records = cursor.fetchall()
 
         if records[0]["TOTAL"] > 0:
-            query = "DELETE FROM [dbo].[client_location_cost] WHERE accountid = %s"
-            cursor.execute(query, data[0][0])
+            query = f"UPDATE [dbo].[client_location_cost] SET client_neighborhood={data[0][1]}, cost_per_sqm={data[0][2]}, object={data[0][3]}, area_type={data[0][4]}, people_type={data[0][5]}, property_type={data[0][6]}, is_valid={data[0][7]} WHERE accountid = {data[0][0]};"
+            cursor.execute(query)
             self.conn.commit()
-
-        query = "INSERT INTO [dbo].[client_location_cost] (accountid, client_neighborhood, cost_per_sqm, object, area_type, people_type, property_type, is_valid) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
-        cursor.executemany(query, data)
-
-        self.conn.commit()
+        else:
+            query = "INSERT INTO [dbo].[client_location_cost] (accountid, client_neighborhood, cost_per_sqm, object, area_type, people_type, property_type, is_valid) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
+            cursor.executemany(query, data)
+            self.conn.commit()
         cursor.close()
 
         print("Data inserted")
@@ -84,12 +83,34 @@ class Database:
         records = cursor.fetchall()
         #print('records: ', records)
 
-
         for record in records:
             print('record: ', record["people_type"], record["area_type"], record["is_valid"])
 
+    def remove_duplicate_records(self):
+        query = """SELECT accountid, COUNT(*) AS RecordCount FROM [dbo].[client_location_cost] GROUP BY accountid;"""
 
+        cursor = self.conn.cursor()
+        cursor.execute(query)
+
+        records = cursor.fetchall()
+
+        for record in records:
+            if record['RecordCount'] > 1:
+                query = """DELETE FROM [dbo].[client_location_cost] WHERE accountid = %s;"""
+                cursor.execute(query, record['accountid'])
+                self.conn.commit()
+                print('Deleted record: ', record['accountid'])
+
+    def get_fields(self, table_name):
+        query = f"SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = {table_name}"
+        cursor = self.conn.cursor()
+        cursor.execute(query)
+
+        records = cursor.fetchall()
+        print('records: ', records)
 
 db = Database()
 # db.read_user_data()
 db.read_cost_data()
+# db.get_fields('client_location_cost')
+# db.remove_duplicate_records()

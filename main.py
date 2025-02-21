@@ -133,7 +133,6 @@ async def analyse_location_image(address):
 async def calculate_cost():
     db = Database()
     records = db.read_user_data()
-    data = []
 
     for row in records:
         data = []
@@ -143,25 +142,16 @@ async def calculate_cost():
         address = row["address"]
 
         original_address = "country="+country+", city="+city+", address="+address
-        temp_address = country+", "+city+", "+address
 
         neighborhood_address = await get_neighbourhood_address(original_address)
 
         if len(neighborhood_address) > 0:
-            cost_1 = await get_cost(neighborhood_address)
+            cost = await get_cost(neighborhood_address)
             response = await analyse_location_image(neighborhood_address)
             
-            if "residential" in response.get("area_type", "") and float(cost_1) > 0:
-                data.append((accountid, neighborhood_address, cost_1, response["object"], response["area_type"], response["people"], response["property_type"], 1))
-        else:
-            cost_2 = await get_cost(original_address)
-            response = await analyse_location_image(temp_address)
-
-            if "residential" in response.get("area_type", "") and float(cost_2) > 0:
-                data.append((accountid, temp_address, cost_2, response["object"], response["area_type"], response["people"], response["property_type"], 1))
-        
-        if len(data) > 0:
-            db.insert_data(data)
+            if "residential" in response.get("area_type", "") and float(cost) > 0:
+                data.append((accountid, neighborhood_address, cost, response["object"], response["area_type"], response["people"], response["property_type"], 1))
+                db.insert_data(data)
 
     db.read_cost_data()
 
