@@ -103,7 +103,7 @@ async def analyse_location_image(address):
                         "content": [
                             {
                                 "type": "text",
-                                "text": "Analyze this image and give me response in this json format: {'object': 'detect the object', 'area_type': 'commercial or residential', 'people': 'rich, medium or poor', 'property_type': 'detect property type like luxurius home, raw house etc'}\nReturn the JSON formatted with {} and don't wrap with ```json.",
+                                "text": "Analyze this image and give me response in this json format: {'object': 'detect the object', 'area_type': 'which type of property is it like commercial or residential', 'people': 'which type of peoples are living there like rich, medium or poor', 'property_type': 'detect property type like luxurius home, raw house etc'}\nReturn the JSON formatted with {} and don't wrap with ```json.",
                             },
                             {
                                 "type": "image_url",
@@ -151,13 +151,13 @@ async def calculate_cost():
             cost_1 = await get_cost(neighborhood_address)
             response = await analyse_location_image(neighborhood_address)
             
-            if "residential" in response.get("area_type") and float(cost_1) > 0:
+            if "residential" in response.get("area_type", "") and float(cost_1) > 0:
                 data.append((accountid, neighborhood_address, cost_1, response["object"], response["area_type"], response["people"], response["property_type"], 1))
         else:
             cost_2 = await get_cost(original_address)
             response = await analyse_location_image(temp_address)
 
-            if "residential" in response.get("area_type") and float(cost_2) > 0:
+            if "residential" in response.get("area_type", "") and float(cost_2) > 0:
                 data.append((accountid, temp_address, cost_2, response["object"], response["area_type"], response["people"], response["property_type"], 1))
         
         if len(data) > 0:
