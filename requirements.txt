@@ -7,4 +7,4 @@ requests==2.32.3
 pydub==0.25.1
 SpeechRecognition==3.14.1
 transformers==4.49.0
-
+pyannote.audio==3.3.2
