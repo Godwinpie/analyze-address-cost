@@ -7,14 +7,13 @@ from PIL import Image
 from io import BytesIO
 
 import base64
-
 import asyncio
 
 from dotenv import load_dotenv
 
-load_dotenv("/home/ec2-user/analyze-address-cost/dot.env")
-# load_dotenv("dot.env")
-# load_dotenv("/mnt/f/Projects/Address-analysis/dot.env")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(BASE_DIR, "dot.env"))
+
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 CHATGPT_MODEL = os.getenv("CHATGPT_MODEL")

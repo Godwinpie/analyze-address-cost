@@ -2,8 +2,8 @@ import os
 from dotenv import load_dotenv
 import pymssql
 
-load_dotenv("/home/ec2-user/analyze-address-cost/dot.env")
-# load_dotenv("dot.env")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(BASE_DIR, "dot.env"))
 
 server = os.getenv("DB_HOST")
 database = os.getenv("DB_NAME")
@@ -111,6 +111,6 @@ class Database:
 
 db = Database()
 # db.read_user_data()
-db.read_cost_data()
+# db.read_cost_data()
 # db.get_fields('client_location_cost')
 # db.remove_duplicate_records()
