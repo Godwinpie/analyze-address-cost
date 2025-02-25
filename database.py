@@ -44,7 +44,7 @@ class Database:
 
     def read_user_data(self):
         query="""select accountid, country, city, address from report.vtiger_account a 
-            where first_deposit_date>'2024-01-01' and city is not null
+            where client_qualification_date>'2024-01-01 00:00:01'
             and not exists (select 1 from [dbo].[client_location_cost] b WHERE a.accountid = b.accountid);
         """
 
@@ -81,10 +81,10 @@ class Database:
         cursor.execute(query)
 
         records = cursor.fetchall()
-        #print('records: ', records)
+        print('records: ', len(records))
 
-        for record in records:
-            print('record: ', record["people_type"], record["area_type"], record["is_valid"])
+        # for record in records:
+        #     print('record: ', record["people_type"], record["area_type"], record["is_valid"])
 
     def remove_duplicate_records(self):
         query = """SELECT accountid, COUNT(*) AS RecordCount FROM [dbo].[client_location_cost] GROUP BY accountid;"""

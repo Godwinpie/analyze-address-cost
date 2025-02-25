@@ -62,7 +62,36 @@ async def get_neighbourhood_address(full_address):
     return response.get("address", "")
 
 
+async def analyse_address_using_openai(address):
+    response = {'object': '', 'area_type': '', 'people': '', 'property_type': ''}
+
+    response = await client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "Address: "+address+"\nGive me response in this json format: {'area_type': 'which type of properties are in that area like commercial or residential', 'people': 'which type of peoples are living there like wealthy, or poor', 'property_type': 'type of property in that area like luxurius home, raw house etc'}\nReturn the JSON formatted with {} and don't wrap with ```json.",
+                    }
+                ],
+            }
+        ],
+    )
+
+    if type(response) != "json":
+        try:
+            response = json.loads(response.replace("'", "\""))
+            print('address analyse: ', response)
+        except:
+            pass
+    
+    return response
+
+
 async def analyse_location_image(address):
+    is_valid = False
     geocode_url = "https://maps.googleapis.com/maps/api/geocode/json"
     params = {
         "address": address,
@@ -119,14 +148,17 @@ async def analyse_location_image(address):
             if type(response) != "json":
                 try:
                     response = json.loads(response.replace("'", "\""))
+                    is_valid = True
                     print('response: ', response)
                 except:
-                    pass
+                    print("Failed to get address analyse response")
             
-            return response
+        else:
+            print("Failed to get location image")
     else:
         print("Failed to get latitude and longitude")
-        return response
+
+    return response, is_valid
 
 
 async def calculate_cost():
@@ -139,17 +171,30 @@ async def calculate_cost():
         country = row["country"]
         city = row["city"]
         address = row["address"]
+        original_address = ""
 
-        original_address = "country="+country+", city="+city+", address="+address
+        if country != None and len(country) > 0:
+            original_address += "country="+str(country)
+        
+        if city != None and len(city) > 0:
+            original_address += ", city="+str(city)
+        
+        if address != None and len(address) > 0:
+            original_address += ", address="+str(address)
+        print('original_address: ', original_address)
 
         neighborhood_address = await get_neighbourhood_address(original_address)
 
         if len(neighborhood_address) > 0:
             cost = await get_cost(neighborhood_address)
-            response = await analyse_location_image(neighborhood_address)
+            response, is_valid_address = await analyse_location_image(neighborhood_address)
             
-            if "residential" in response.get("area_type", "") and float(cost) > 0:
-                data.append((accountid, neighborhood_address, cost, response["object"], response["area_type"], response["people"], response["property_type"], 1))
+            if float(cost) > 0:
+                if not is_valid_address:
+                    response = await analyse_address_using_openai(neighborhood_address)
+                    data.append((accountid, neighborhood_address, cost, "", response["area_type"], response["people"], response["property_type"], 1))
+                else:
+                    data.append((accountid, neighborhood_address, cost, response["object"], response["area_type"], response["people"], response["property_type"], 1))
                 db.insert_data(data)
 
     db.read_cost_data()
