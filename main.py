@@ -37,7 +37,7 @@ async def get_openai_response(prompt):
 
 
 async def get_cost(neighborhood_address):
-    cost_prompt = neighborhood_address+"\nGive me accurate cost in dollar per meter square for given address and provide response in {'cost': actual_cost} format only.\nReturn the JSON formatted with {} and don't wrap with ```json. If cost not found, than give me average cost of that location."
+    cost_prompt = neighborhood_address+"\nGive me accurate cost in dollar per meter square for given address and provide response in {'cost': actual_cost} format only.\nReturn the JSON formatted with {} and don't wrap with ```json. If cost not found, than give me average cost of that location in the given response format."
 
     response = await get_openai_response(cost_prompt)
     if type(response) != "json":
