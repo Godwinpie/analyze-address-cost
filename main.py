@@ -108,7 +108,6 @@ async def analyse_location_image(address):
     if geocode_response["status"] == "OK":
 
         location = geocode_response["results"][0]["geometry"]["location"]
-        print('geocode_response["results"]: ', location)
         lat, lon = location["lat"], location["lng"]
 
         street_view_url = f"https://maps.googleapis.com/maps/api/streetview?size=600x400&location={lat},{lon}&key={GOOGLE_MAP_API_KEY}"
@@ -154,7 +153,7 @@ async def analyse_location_image(address):
                 try:
                     response = json.loads(response.replace("'", "\""))
                     is_valid = True
-                    print('response: ', response)
+                    print('Data: ', response)
                 except:
                     print("Failed to get address analyse response")
             
@@ -186,12 +185,13 @@ async def calculate_cost():
         
         if address != None and len(address) > 0:
             original_address += ", address="+str(address)
-        print('original_address: ', original_address)
 
         neighborhood_address = await get_neighbourhood_address(original_address)
+        print('neighborhood_address: ', neighborhood_address)
 
         if len(neighborhood_address) > 0:
             cost = await get_cost(neighborhood_address)
+            print('cost: ', cost)
             response, is_valid_address = await analyse_location_image(neighborhood_address)
             
             if float(cost) > 0:
