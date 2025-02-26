@@ -79,6 +79,7 @@ async def analyse_address_using_openai(address):
             }
         ],
     )
+    response = response.choices[0].message.content
 
     if type(response) != "json":
         try:
@@ -190,11 +191,11 @@ async def calculate_cost():
             response, is_valid_address = await analyse_location_image(neighborhood_address)
             
             if float(cost) > 0:
-                if not is_valid_address:
+                if is_valid_address and len(response) > 0:
+                    data.append((accountid, neighborhood_address, cost, response["object"], response["area_type"], response["people"], response["property_type"], 1))
+                else:
                     response = await analyse_address_using_openai(neighborhood_address)
                     data.append((accountid, neighborhood_address, cost, "", response["area_type"], response["people"], response["property_type"], 1))
-                else:
-                    data.append((accountid, neighborhood_address, cost, response["object"], response["area_type"], response["people"], response["property_type"], 1))
                 db.insert_data(data)
 
     db.read_cost_data()
