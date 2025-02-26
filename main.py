@@ -134,7 +134,7 @@ async def analyse_location_image(address):
                                 "type": "text",
                                 "text": """Analyze this image and give me response in this json format: 
                                         {'object': 'detect the object', 'area_type': 'which type of property is it like commercial or residential', 'people': 'which type 
-                                        of peoples are living there like rich, medium or poor', 'property_type': 'detect property type like luxurius home, raw house etc'}
+                                        of peoples are living there like wealthy, or poor', 'property_type': 'detect property type like luxurius home, raw house etc'}
                                         \nReturn the JSON formatted with {} and don't wrap with ```json. Should not contain unknow or not available in response if any information not found instead of that return any location in that city or state.
                                         """,
                             },
