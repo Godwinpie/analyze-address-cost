@@ -37,7 +37,7 @@ async def get_openai_response(prompt):
 
 
 async def get_cost(neighborhood_address):
-    cost_prompt = neighborhood_address+"\nGive me accurate cost in dollar per meter square for given address and provide response in {'cost': actual_cost} format only. If actual_cost not found than {'cost': 0, 'error': error}. Return the JSON formatted with {} and don't wrap with ```json."
+    cost_prompt = neighborhood_address+"\nGive me accurate cost in dollar per meter square for given address and provide response in {'cost': actual_cost} format only.\nReturn the JSON formatted with {} and don't wrap with ```json. If cost not found, than give me average cost of that location."
 
     response = await get_openai_response(cost_prompt)
     if type(response) != "json":
@@ -132,7 +132,11 @@ async def analyse_location_image(address):
                         "content": [
                             {
                                 "type": "text",
-                                "text": "Analyze this image and give me response in this json format: {'object': 'detect the object', 'area_type': 'which type of property is it like commercial or residential', 'people': 'which type of peoples are living there like rich, medium or poor', 'property_type': 'detect property type like luxurius home, raw house etc'}\nReturn the JSON formatted with {} and don't wrap with ```json.",
+                                "text": """Analyze this image and give me response in this json format: 
+                                        {'object': 'detect the object', 'area_type': 'which type of property is it like commercial or residential', 'people': 'which type 
+                                        of peoples are living there like rich, medium or poor', 'property_type': 'detect property type like luxurius home, raw house etc'}
+                                        \nReturn the JSON formatted with {} and don't wrap with ```json. Should not contain unknow or not available in response if any information not found instead of that return any location in that city or state.
+                                        """,
                             },
                             {
                                 "type": "image_url",
