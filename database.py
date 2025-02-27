@@ -44,9 +44,9 @@ class Database:
 
     def read_user_data(self):
         query="""select accountid, country, city, address from report.vtiger_account a 
-            where client_qualification_date>'2024-01-01 00:00:01'
-            and not exists (select 1 from [dbo].[client_location_cost] b WHERE a.accountid = b.accountid);
+            where client_qualification_date>'2024-01-01 00:00:01';
         """
+        # and not exists (select 1 from [dbo].[client_location_cost] b WHERE a.accountid = b.accountid);
 
         cursor = self.conn.cursor()
         cursor.execute(query)
@@ -62,16 +62,27 @@ class Database:
         records = cursor.fetchall()
 
         if records[0]["TOTAL"] > 0:
-            query = f"UPDATE [dbo].[client_location_cost] SET client_neighborhood={data[0][1]}, cost_per_sqm={data[0][2]}, object={data[0][3]}, area_type={data[0][4]}, people_type={data[0][5]}, property_type={data[0][6]}, is_valid={data[0][7]} WHERE accountid = {data[0][0]};"
+            query = f"UPDATE [dbo].[client_location_cost] SET client_neighborhood='{data[0][1]}', cost_per_sqm={data[0][2]}, object='{data[0][3]}', area_type='{data[0][4]}', people_type='{data[0][5]}', property_type='{data[0][6]}', is_valid={data[0][7]} WHERE accountid = {data[0][0]};"
             cursor.execute(query)
             self.conn.commit()
+            print("Client updated")
         else:
             query = "INSERT INTO [dbo].[client_location_cost] (accountid, client_neighborhood, cost_per_sqm, object, area_type, people_type, property_type, is_valid) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
             cursor.executemany(query, data)
             self.conn.commit()
+            print("Client inserted")
         cursor.close()
 
-        print("Data inserted")
+    
+    def update_neighborhood_data(self, data):
+        cursor = self.conn.cursor()
+
+        query = f"UPDATE [dbo].[client_location_cost] SET client_neighborhood='{data[0][1]}' WHERE accountid = {data[0][0]};"
+        cursor.execute(query)
+        self.conn.commit()
+        cursor.close()
+
+        print("Neighborhood updated")
     
     def read_cost_data(self):
         # query = """SELECT COUNT(*) AS TOTAL FROM [dbo].[client_location_cost]"""

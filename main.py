@@ -37,7 +37,7 @@ async def get_openai_response(prompt):
 
 
 async def get_cost(neighborhood_address):
-    cost_prompt = neighborhood_address+"\nGive me accurate per meter square cost in dollar for given address and provide response in {'cost': actual_cost} format only.\nIf cost not found, than give me average cost of that location in the given response format. Do not include currency symbol in the response.\nReturn the JSON formatted with {} and don't wrap with ```json."
+    cost_prompt = neighborhood_address+"\nGive me accurate per meter square cost in dollar for given address and provide response in {'cost': actual_cost} format only.\nIf cost not found, than give me average cost of that location in the given response format. Do not include currency symbol in the response.\nReturn the JSON formatted with {} and don't wrap with ```json. Not include None in response."
 
     response = await get_openai_response(cost_prompt)
     if type(response) != "json":
@@ -46,7 +46,11 @@ async def get_cost(neighborhood_address):
         except:
             response = {"cost": 0}
 
-    return response.get("cost", 0)
+    cost = response.get("cost", 0)
+    if type(cost) != str:
+        return cost
+    else:
+        return float(cost)
 
 
 async def get_neighbourhood_address(full_address):
@@ -146,7 +150,6 @@ async def analyse_location_image(address):
                 ],
             )
 
-            print("--------------------------------")
             response = response.choices[0].message.content
 
             if type(response) != "json":
@@ -185,6 +188,9 @@ async def calculate_cost():
         
         if address != None and len(address) > 0:
             original_address += ", address="+str(address)
+        
+        print("---------------------------------------------------")
+        print('original_address: ', original_address)
 
         neighborhood_address = await get_neighbourhood_address(original_address)
         print('neighborhood_address: ', neighborhood_address)
@@ -194,13 +200,15 @@ async def calculate_cost():
             print('cost: ', cost)
             response, is_valid_address = await analyse_location_image(neighborhood_address)
             
-            if float(cost) > 0:
+            if cost > 0:
                 if is_valid_address and len(response) > 0:
                     data.append((accountid, neighborhood_address, cost, response["object"], response["area_type"], response["people"], response["property_type"], 1))
                 else:
                     response = await analyse_address_using_openai(neighborhood_address)
                     data.append((accountid, neighborhood_address, cost, "", response["area_type"], response["people"], response["property_type"], 1))
                 db.insert_data(data)
+            else:
+                db.update_neighborhood_data([(accountid, neighborhood_address)])
 
     db.read_cost_data()
 
