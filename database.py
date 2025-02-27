@@ -62,11 +62,14 @@ class Database:
         records = cursor.fetchall()
 
         if records[0]["TOTAL"] > 0:
-            query = "SELECT client_neighborhood FROM [dbo].[client_location_cost] WHERE accountid = %s"
+            query = "SELECT client_neighborhood, cost_per_sqm FROM [dbo].[client_location_cost] WHERE accountid = %s"
             cursor.execute(query, data[0][0])
             records = cursor.fetchall()
 
-            if records[0]["client_neighborhood"] != data[0][1]:
+            print('records[0]["cost_per_sqm"] : ', records[0]["cost_per_sqm"] )
+            print('records[0]["client_neighborhood"]: ', records[0]["client_neighborhood"])
+
+            if records[0]["client_neighborhood"] != data[0][1] or records[0]["cost_per_sqm"] != str(data[0][2]):
                 query = f"UPDATE [dbo].[client_location_cost] SET client_neighborhood='{data[0][1]}', cost_per_sqm={data[0][2]}, object='{data[0][3]}', area_type='{data[0][4]}', people_type='{data[0][5]}', property_type='{data[0][6]}', is_valid={data[0][7]} WHERE accountid = {data[0][0]};"
                 cursor.execute(query)
                 self.conn.commit()
