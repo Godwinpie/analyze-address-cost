@@ -54,7 +54,7 @@ async def get_cost(neighborhood_address):
 
 
 async def get_neighbourhood_address(full_address):
-    neighborhood_prompt = full_address+"\nIn which neighborhood is this street located? and provide response in {'address': neighborhood_address} format only. If neighborhood not found than {'address': '', 'error': error}. \nReturn the JSON formatted with {} and don't wrap with ```json.\nNeighborhood should not contains single quote and apostrophe s. Neighborhood must be in a string."
+    neighborhood_prompt = full_address+"\n\nIn which neighborhood is this street located? and provide response in {'address': neighborhood_address} format only. If neighborhood not found than {'address': '', 'error': error}. \nReturn the JSON formatted with {} and don't wrap with ```json.\nNeighborhood should not contains single quote and apostrophe s. Neighborhood must be in a string."
 
     response = await get_openai_response(neighborhood_prompt)
     if type(response) != "json":
@@ -200,15 +200,13 @@ async def calculate_cost():
             print('cost: ', cost)
             response, is_valid_address = await analyse_location_image(neighborhood_address)
             
-            if cost > 0:
-                if is_valid_address and len(response) > 0:
-                    data.append((accountid, neighborhood_address, cost, response["object"], response["area_type"], response["people"], response["property_type"], 1))
-                else:
-                    response = await analyse_address_using_openai(neighborhood_address)
-                    data.append((accountid, neighborhood_address, cost, "", response["area_type"], response["people"], response["property_type"], 1))
-                db.insert_data(data)
+            if is_valid_address and len(response) > 0:
+                data.append((accountid, neighborhood_address, cost, response["object"], response["area_type"], response["people"], response["property_type"], 1))
             else:
-                db.update_neighborhood_data([(accountid, neighborhood_address)])
+                response = await analyse_address_using_openai(neighborhood_address)
+                data.append((accountid, neighborhood_address, cost, "", response["area_type"], response["people"], response["property_type"], 1))
+            db.insert_data(data)
+                # db.update_neighborhood_data([(accountid, neighborhood_address)])
 
     db.read_cost_data()
 
