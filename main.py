@@ -206,7 +206,7 @@ async def calculate_cost():
                 response = await analyse_address_using_openai(neighborhood_address)
                 data.append((accountid, neighborhood_address, cost, "", response["area_type"], response["people"], response["property_type"], 1))
             db.insert_data(data)
-                # db.update_neighborhood_data([(accountid, neighborhood_address)])
+            # db.update_neighborhood_data([(accountid, neighborhood_address)])
 
     db.read_cost_data()
 
