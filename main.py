@@ -54,7 +54,7 @@ async def get_cost(neighborhood_address):
 
 
 async def get_neighbourhood_address(full_address):
-    neighborhood_prompt = full_address+"\nFind the neighborhood residential area from a given address and provide response in {'address': neighborhood_address} format only. If neighborhood_address not found than {'address': '', 'error': error}. \nReturn the JSON formatted with {} and don't wrap with ```json.\nneighborhood_address should not contains single quote and apostrophe s. neighborhood_address must be in a string."
+    neighborhood_prompt = full_address+"\nIn which neighborhood is this street located? and provide response in {'address': neighborhood_address} format only. If neighborhood not found than {'address': '', 'error': error}. \nReturn the JSON formatted with {} and don't wrap with ```json.\nNeighborhood should not contains single quote and apostrophe s. Neighborhood must be in a string."
 
     response = await get_openai_response(neighborhood_prompt)
     if type(response) != "json":
