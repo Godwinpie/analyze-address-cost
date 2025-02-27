@@ -62,10 +62,17 @@ class Database:
         records = cursor.fetchall()
 
         if records[0]["TOTAL"] > 0:
-            query = f"UPDATE [dbo].[client_location_cost] SET client_neighborhood='{data[0][1]}', cost_per_sqm={data[0][2]}, object='{data[0][3]}', area_type='{data[0][4]}', people_type='{data[0][5]}', property_type='{data[0][6]}', is_valid={data[0][7]} WHERE accountid = {data[0][0]};"
-            cursor.execute(query)
-            self.conn.commit()
-            print("Client updated")
+            query = "SELECT client_neighborhood FROM [dbo].[client_location_cost] WHERE accountid = %s"
+            cursor.execute(query, data[0][0])
+            records = cursor.fetchall()
+
+            if records[0]["client_neighborhood"] != data[0][1]:
+                query = f"UPDATE [dbo].[client_location_cost] SET client_neighborhood='{data[0][1]}', cost_per_sqm={data[0][2]}, object='{data[0][3]}', area_type='{data[0][4]}', people_type='{data[0][5]}', property_type='{data[0][6]}', is_valid={data[0][7]} WHERE accountid = {data[0][0]};"
+                cursor.execute(query)
+                self.conn.commit()
+                print("Client updated")
+            else:
+                print("Client skipped")
         else:
             query = "INSERT INTO [dbo].[client_location_cost] (accountid, client_neighborhood, cost_per_sqm, object, area_type, people_type, property_type, is_valid) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
             cursor.executemany(query, data)
