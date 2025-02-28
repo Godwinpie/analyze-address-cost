@@ -10,14 +10,6 @@ database = os.getenv("DB_NAME")
 username = os.getenv("DB_USER")
 password = os.getenv("DB_PASS")
 
-conn = pymssql.connect(
-    server=server,
-    user=username,
-    password=password,
-    database=database,
-    as_dict=True
-)
-
 class Database:
 
     def __init__(self):

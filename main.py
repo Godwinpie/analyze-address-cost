@@ -37,7 +37,7 @@ async def get_openai_response(prompt):
 
 
 async def get_cost(neighborhood_address):
-    cost_prompt = "What is per meter square cost in dollar for "+neighborhood_address+".\nProvide response in {'cost': actual_cost} format only and If cost not found, than give me average cost of that location in the given response format. Do not include currency symbol in the response.\nReturn the JSON formatted with {} and don't wrap with ```json. Not include None in response."
+    cost_prompt = "What is per meter square cost in dollar for ["+neighborhood_address+"].\nInclude fields: 'cost', 'address' and If cost not found, than provide average cost of that location in the given response format. Do not include currency symbol in the response.\nReturn the JSON formatted with {} and don't wrap with ```json. Not include None in response."
 
     response = await get_openai_response(cost_prompt)
     if type(response) != "json":
@@ -47,14 +47,14 @@ async def get_cost(neighborhood_address):
             response = {"cost": 0}
 
     cost = response.get("cost", 0)
-    if type(cost) != str:
-        return cost
-    else:
+    try:
         return float(cost)
+    except:
+        return 0
 
 
 async def get_neighbourhood_address(full_address):
-    neighborhood_prompt = full_address+"\n\nIn which neighborhood is this street located? and provide response in {'address': neighborhood_address} format only. If neighborhood not found than {'address': '', 'error': error}. \nReturn the JSON formatted with {} and don't wrap with ```json.\nNeighborhood should not contains single quote and apostrophe s. Neighborhood must be in a string."
+    neighborhood_prompt = full_address+"\n\nIn which neighborhood is this street located?\nProvide response in {'address': neighborhood_address} format only. If neighborhood not found than {'address': '', 'error': error}. \nReturn the JSON formatted with {} and don't wrap with ```json.\nNeighborhood should not contains single quote and apostrophe s. Neighborhood must be in a string."
 
     response = await get_openai_response(neighborhood_prompt)
     if type(response) != "json":
