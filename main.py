@@ -65,7 +65,11 @@ async def get_average_cost(full_address):
         except:
             response = {"cost": 0}
 
-    return response.get("cost", 0)
+    average_cost = response.get("cost", 0)
+    try:
+        return float(average_cost)
+    except:
+        return 0
 
 
 async def get_neighbourhood_address(full_address):
