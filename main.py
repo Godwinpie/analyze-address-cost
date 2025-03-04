@@ -36,13 +36,14 @@ async def get_openai_response(prompt):
     return result
 
 
-async def get_cost(neighborhood_address):
-    cost_prompt = "What is per meter square cost in dollar for ["+neighborhood_address+"].\nInclude fields: 'cost', 'address' and If cost not found, than provide average cost of that location in the given response format. Do not include currency symbol in the response.\nReturn the JSON formatted with {} and don't wrap with ```json. Not include None in response."
+async def get_cost(neighborhood_address, city, country):
+    cost_prompt = "Address: "+neighborhood_address+", city: "+city+", country: "+country+"\nWhat is per meter square cost in dollar of property in this area?\nInclude fields: 'cost', 'address'. Do not include currency symbol in the response.\nReturn the JSON formatted with {} and don't wrap with ```json."
 
     response = await get_openai_response(cost_prompt)
     if type(response) != "json":
         try:
             response = json.loads(response.replace("'", "\""))
+            print('response: ', response)
         except:
             response = {"cost": 0}
 
@@ -53,13 +54,28 @@ async def get_cost(neighborhood_address):
         return 0
 
 
+async def get_average_cost(full_address):
+    average_cost_prompt = full_address+"\n\nWhat is the average per meter square cost in dollar of property in this area?\nInclude fields: 'cost', 'address'. Do not include currency symbol in the response.\nReturn the JSON formatted with {} and don't wrap with ```json."
+
+    response = await get_openai_response(average_cost_prompt)
+    if type(response) != "json":
+        try:
+            response = json.loads(response.replace("'", "\""))
+            print('response: ', response)
+        except:
+            response = {"cost": 0}
+
+    return response.get("cost", 0)
+
+
 async def get_neighbourhood_address(full_address):
-    neighborhood_prompt = full_address+"\n\nIn which neighborhood is this street located?\nProvide response in {'address': neighborhood_address} format only. If neighborhood not found than {'address': '', 'error': error}. \nReturn the JSON formatted with {} and don't wrap with ```json.\nNeighborhood should not contains single quote and apostrophe s. Neighborhood must be in a string."
+    neighborhood_prompt = full_address+"\n\nIn which neighborhood is this street located?\nProvide response in {'address': neighborhood_address} format only.\nReturn the JSON formatted with {} and don't wrap with ```json.\nNeighborhood should not contains single quote and apostrophe s."
 
     response = await get_openai_response(neighborhood_prompt)
     if type(response) != "json":
         try:
             response = json.loads(response.replace("'", "\""))
+            print('response: ', response)
         except:
             response = {"address": ""}
 
@@ -77,7 +93,7 @@ async def analyse_address_using_openai(address):
                 "content": [
                     {
                         "type": "text",
-                        "text": "Address: "+address+"\nGive me response in this json format: {'area_type': 'which type of properties are in that area like commercial or residential', 'people': 'which type of peoples are living there like wealthy, or poor', 'property_type': 'type of property in that area like luxurius home, raw house etc'}\nReturn the JSON formatted with {} and don't wrap with ```json.",
+                        "text": "Address: "+address+"\nGive me response in this json format: {'area_type': 'which type of properties are in that area like commercial or residential', 'people': 'which type of peoples are living there like High class, wealthy, mid class, low class, or poor', 'property_type': 'type of property in that area like luxurius home, raw house etc'}\nReturn the JSON formatted with {} and don't wrap with ```json.",
                     }
                 ],
             }
@@ -196,17 +212,22 @@ async def calculate_cost():
         print('neighborhood_address: ', neighborhood_address)
 
         if len(neighborhood_address) > 0:
-            cost = await get_cost(neighborhood_address)
+            cost = await get_cost(neighborhood_address, str(city), str(country))
             print('cost: ', cost)
             response, is_valid_address = await analyse_location_image(neighborhood_address)
             
             if is_valid_address and len(response) > 0:
-                data.append((accountid, neighborhood_address, cost, response["object"], response["area_type"], response["people"], response["property_type"], 1))
+                data.append((accountid, neighborhood_address, cost, str(response["object"]), str(response["area_type"]), str(response["people"]), str(response["property_type"]), 1))
             else:
                 response = await analyse_address_using_openai(neighborhood_address)
-                data.append((accountid, neighborhood_address, cost, "", response["area_type"], response["people"], response["property_type"], 1))
+                data.append((accountid, neighborhood_address, cost, "", str(response["area_type"]), str(response["people"]), str(response["property_type"]), 1))
             db.insert_data(data)
-            # db.update_neighborhood_data([(accountid, neighborhood_address)])
+        else:
+            average_cost = get_average_cost(original_address)
+            print('Average cost: ', average_cost)
+            data.append((accountid, average_cost, 1))
+            db.insert_cost(data)
+            
 
     db.read_cost_data()
 

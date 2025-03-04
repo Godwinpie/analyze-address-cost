@@ -27,7 +27,7 @@ class Database:
             """
             cursor = self.conn.cursor()
             cursor.execute(create_table_query)
-            conn.commit()
+            self.conn.commit()
 
             print("Table created.")
 
@@ -75,7 +75,26 @@ class Database:
             print("Client inserted")
         cursor.close()
 
-    
+    def insert_cost(self, data):
+        cursor = self.conn.cursor()
+        query = "SELECT COUNT(*) AS TOTAL FROM [dbo].[client_location_cost] WHERE accountid = %s"
+        cursor.execute(query, data[0][0])
+        records = cursor.fetchall()
+
+        if records[0]["TOTAL"] > 0:
+            query = f"UPDATE [dbo].[client_location_cost] SET cost_per_sqm={data[0][1]}, is_valid={data[0][2]} WHERE accountid = {data[0][0]};"
+            cursor.execute(query)
+            self.conn.commit()
+            print("Cost updated")
+        else:
+            query = "INSERT INTO [dbo].[client_location_cost] (accountid, cost_per_sqm, is_valid) VALUES (%s, %s, %s)"
+            cursor.executemany(query, data)
+            self.conn.commit()
+            print("Cost inserted")
+
+        cursor.close()
+
+
     def update_neighborhood_data(self, data):
         cursor = self.conn.cursor()
 
@@ -122,7 +141,7 @@ class Database:
         records = cursor.fetchall()
         print('records: ', records)
 
-db = Database()
+# db = Database()
 # db.read_user_data()
 # db.read_cost_data()
 # db.get_fields('client_location_cost')
