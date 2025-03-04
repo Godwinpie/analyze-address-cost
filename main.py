@@ -69,7 +69,7 @@ async def get_average_cost(full_address):
 
 
 async def get_neighbourhood_address(full_address):
-    neighborhood_prompt = full_address+"\n\nIn which neighborhood is this street located?\nProvide response in {'address': neighborhood_address} format only.\nReturn the JSON formatted with {} and don't wrap with ```json.\nNeighborhood should not contains single quote and apostrophe s."
+    neighborhood_prompt = full_address+"\n\nIn which neighborhood is this street located?\nProvide response in {'address': neighborhood_address} format only.\nReturn the JSON formatted with {} and don't wrap with ```json.\nNeighborhood should not contains single quote and apostrophe s.\n If neighborhood not found than {'address': '', 'error': error}. Not include unknown or not available in response."
 
     response = await get_openai_response(neighborhood_prompt)
     if type(response) != "json":
@@ -223,7 +223,7 @@ async def calculate_cost():
                 data.append((accountid, neighborhood_address, cost, "", str(response["area_type"]), str(response["people"]), str(response["property_type"]), 1))
             db.insert_data(data)
         else:
-            average_cost = get_average_cost(original_address)
+            average_cost = await get_average_cost(original_address)
             print('Average cost: ', average_cost)
             data.append((accountid, average_cost, 1))
             db.insert_cost(data)
