@@ -48,7 +48,7 @@ async def analyse_data():
         print('accountid: ', accountid)
         print('original_address: ', original_address)
 
-        if len(address) > 0 and len(city) > 0:
+        if address and city:
             neighborhood_address = await get_neighbourhood_address(original_address)
         else:
             data.append((accountid, "", 0, "", "", "", "", 0))
