@@ -52,7 +52,7 @@ async def analyse_data():
             neighborhood_address = await get_neighbourhood_address(original_address)
         else:
             data.append((accountid, "", 0, "", "", "", "", 0))
-            db.insert_data(data)
+            # db.insert_data(data)
             continue
 
         if len(neighborhood_address) > 0:
