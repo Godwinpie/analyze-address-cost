@@ -87,7 +87,7 @@ async def get_neighbourhood_address(full_address):
 
 
 async def analyse_address_using_openai(address):
-    response = {'object': '', 'area_type': '', 'people': '', 'property_type': ''}
+    response = {'object': '', 'area_type': '', 'people_type': '', 'property_type': ''}
 
     response = await client.chat.completions.create(
         model="gpt-4o-mini",
@@ -97,7 +97,7 @@ async def analyse_address_using_openai(address):
                 "content": [
                     {
                         "type": "text",
-                        "text": "Address: "+address+"\nGive me response in this json format: {'area_type': 'which type of properties are in that area like commercial or residential', 'people': 'which type of peoples are living there like High class, wealthy, mid class, low class, or poor', 'property_type': 'type of property in that area like luxurius home, raw house etc'}\nReturn the JSON formatted with {} and don't wrap with ```json.",
+                        "text": "Address: "+address+"\nGive me response in this json format: {'area_type': 'which type of properties are in that area?, answer must be from (commercial, residential)', 'street_people_type': 'which type of peoples are living there?, answer must be from (High class, wealthy, mid class, low class, poor)', 'neighbourhood_people_type': 'which type of peoples are living there?, answer must be from (High class, wealthy, mid class, low class, poor)', 'property_type': 'which types of property in that area?, answer must be from (luxurius home, raw house)'}\nReturn the JSON formatted with {} and don't wrap with ```json.",
                     }
                 ],
             }
@@ -127,7 +127,7 @@ async def analyse_location_image(address):
     geocode_response = await geocode_request.get(geocode_url, params=params)
     geocode_response = geocode_response.json()
 
-    response = {'object': '', 'area_type': '', 'people': '', 'property_type': ''}
+    response = {'object': '', 'area_type': '', 'people_type': '', 'property_type': ''}
 
     if geocode_response["status"] == "OK":
 
@@ -156,9 +156,8 @@ async def analyse_location_image(address):
                             {
                                 "type": "text",
                                 "text": """Analyze this image and give me response in this json format: 
-                                        {'object': 'detect the object', 'area_type': 'which type of property is it like commercial or residential', 'people': 'which type 
-                                        of peoples are living there like wealthy, or poor', 'property_type': 'detect property type like luxurius home, raw house etc'}
-                                        \nReturn the JSON formatted with {} and don't wrap with ```json. Should not contain unknow or not available in response if any information not found instead of that return any location in that city or state.
+                                        {'object': 'detect the object', 'area_type': 'which type of properties are in there?, answer must be from (commercial, residential)', 'people_type': 'which type of peoples are living there?, answer must be from (High class, wealthy, mid class, low class, poor)', 'property_type': 'which type of property it is?, answer must be from (luxurius home, raw house)', 'build_cost': 'Estimate the per meter square cost in dollar to build this property.'}
+                                        \nReturn the JSON formatted with {} and don't wrap with ```json. Should not contain unknow or not available in response. if any information not found instead of that return any location in that city or state.
                                         """,
                             },
                             {
@@ -212,7 +211,13 @@ async def calculate_cost():
         print("---------------------------------------------------")
         print('original_address: ', original_address)
 
-        neighborhood_address = await get_neighbourhood_address(original_address)
+        if len(address) > 0 and len(city) > 0:
+            neighborhood_address = await get_neighbourhood_address(original_address)
+        else:
+            data.append((accountid, "", 0, "", "", "", "", 0))
+            db.insert_data(data)
+            continue
+
         print('neighborhood_address: ', neighborhood_address)
 
         if len(neighborhood_address) > 0:
@@ -221,10 +226,10 @@ async def calculate_cost():
             response, is_valid_address = await analyse_location_image(neighborhood_address)
             
             if is_valid_address and len(response) > 0:
-                data.append((accountid, neighborhood_address, cost, str(response["object"]), str(response["area_type"]), str(response["people"]), str(response["property_type"]), 1))
+                data.append((accountid, neighborhood_address, cost, str(response["object"]), str(response["area_type"]), str(response["people_type"]), str(response["property_type"]), 1))
             else:
                 response = await analyse_address_using_openai(neighborhood_address)
-                data.append((accountid, neighborhood_address, cost, "", str(response["area_type"]), str(response["people"]), str(response["property_type"]), 1))
+                data.append((accountid, neighborhood_address, cost, "", str(response["area_type"]), str(response["people_type"]), str(response["property_type"]), 1))
             db.insert_data(data)
         else:
             average_cost = await get_average_cost(original_address)
